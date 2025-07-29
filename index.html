@@ -170,12 +170,50 @@
                 const sfDateTimeString = datetimePicker.value;
                 if (!sfDateTimeString) return;
 
-                const now = new Date();
-                const localOffset = now.getTimezoneOffset() * 60000;
-                const sfTimeInMs = new Date(now.toLocaleString('en-US', {timeZone: 'America/Los_Angeles'})).getTime();
-                const sfOffset = sfTimeInMs - (now.getTime() - localOffset);
-                const targetTimeInPicker = new Date(sfDateTimeString).getTime();
-                const baseTime = new Date(targetTimeInPicker - sfOffset);
+                // This function correctly creates a UTC Date object from a wall-clock time string
+                // for a specific timezone. It works by trying potential UTC offsets for that timezone
+                // and verifying the result using the Intl API, which is the source of truth.
+                function createDateInTimezone(dateTimeString, timeZone) {
+                    // For America/Los_Angeles, the offset is either -7 (PDT) or -8 (PST).
+                    // We test both to see which one results in the correct wall-clock time.
+                    const offsetsToTest = ['-07:00', '-08:00'];
+                    let correctDate = null;
+
+                    for (const offset of offsetsToTest) {
+                        // Create a date object by appending the test offset.
+                        const testDate = new Date(dateTimeString + offset);
+
+                        // Format this date back into the target timezone's wall-clock time.
+                        const options = {
+                            timeZone: timeZone,
+                            year: 'numeric', month: '2-digit', day: '2-digit',
+                            hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+                        };
+                        const formatter = new Intl.DateTimeFormat('en-CA', options); // en-CA gives YYYY-MM-DD
+                        const formattedDate = formatter.format(testDate).replace(', ', 'T');
+
+                        // If the formatted time matches the original input, we found the correct offset.
+                        if (formattedDate === dateTimeString) {
+                            correctDate = testDate;
+                            break;
+                        }
+                    }
+                    
+                    if (!correctDate) {
+                        console.error("Could not determine correct offset. Please check timezone data.");
+                        // Fallback to prevent crash, though it might be inaccurate.
+                        return new Date(dateTimeString);
+                    }
+
+                    return correctDate;
+                }
+
+                const baseTime = createDateInTimezone(sfDateTimeString, 'America/Los_Angeles');
+
+                if (!baseTime) {
+                    console.error("Could not create a valid base time.");
+                    return;
+                }
 
                 document.querySelectorAll('.card').forEach((card, index) => {
                     const city = worldCities[index];
