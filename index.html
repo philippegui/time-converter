@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Zone Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styles for better visual appeal */
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        /* Style for the datetime input */
+        input[type="datetime-local"] {
+            -webkit-appearance: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-lg">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900">Time Zone Converter</h1>
+            <p class="text-gray-600 mt-2">Compare times for your selected cities and export the result.</p>
+        </header>
+
+        <!-- Controls Section -->
+        <div class="bg-white p-6 rounded-xl shadow-md mb-8">
+             <div>
+                <label for="datetime-picker" class="block text-sm font-medium text-gray-700 mb-1">Select Date & Time (San Francisco Time)</label>
+                <input type="datetime-local" id="datetime-picker" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+        </div>
+
+        <!-- Cities Display Section -->
+        <div id="export-container">
+            <div id="cities-container" class="grid grid-cols-1 gap-4">
+                <!-- City cards will be injected here -->
+            </div>
+        </div>
+
+        <!-- Export Button -->
+        <div class="mt-8 text-center">
+            <button id="export-btn" class="bg-green-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Export to Image
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+        <div class="relative mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Remove City</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">
+                        Are you sure you want to remove this city? This action cannot be undone.
+                    </p>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="confirm-remove-btn" class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-auto shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        Remove
+                    </button>
+                    <button id="cancel-remove-btn" class="px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md w-auto ml-2 shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DATA ---
+            let worldCities = [ // Use 'let' to allow modification
+                { name: "San Francisco, USA", timezone: "America/Los_Angeles" },
+                { name: "Montreal, Canada", timezone: "America/Montreal" },
+                { name: "Paris, France", timezone: "Europe/Paris" },
+                { name: "Phnom Penh, Cambodia", timezone: "Asia/Phnom_Penh" }
+            ];
+
+            // --- DOM ELEMENTS ---
+            const citiesContainer = document.getElementById('cities-container');
+            const exportBtn = document.getElementById('export-btn');
+            const exportContainer = document.getElementById('export-container');
+            const datetimePicker = document.getElementById('datetime-picker');
+            const modal = document.getElementById('confirmation-modal');
+            const confirmBtn = document.getElementById('confirm-remove-btn');
+            const cancelBtn = document.getElementById('cancel-remove-btn');
+            let cityIndexToRemove = null;
+
+            // --- FUNCTIONS ---
+
+            /**
+             * Renders city card skeletons to the DOM.
+             */
+            function renderCities() {
+                citiesContainer.innerHTML = '';
+                worldCities.forEach((city, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'card p-5 flex justify-between items-center cursor-pointer';
+                    card.dataset.index = index;
+                    card.innerHTML = `
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-800">${city.name.split(',')[0]}</h2>
+                            <p class="text-sm text-gray-500 font-normal mt-1">${city.name.split(',')[1] || ''}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-3xl font-semibold text-indigo-600 time-display">--:-- --</p>
+                            <p class="text-sm text-gray-600 date-display mt-1">----------</p>
+                        </div>
+                    `;
+                    citiesContainer.appendChild(card);
+                });
+            }
+            
+            /**
+             * Handles clicking a city card to show the removal prompt.
+             */
+            function handleCardClick(e) {
+                const card = e.target.closest('.card');
+                if (card) {
+                    cityIndexToRemove = parseInt(card.dataset.index, 10);
+                    modal.classList.remove('hidden');
+                }
+            }
+
+            /**
+             * Confirms the removal of a city and closes the modal.
+             */
+            function confirmRemoval() {
+                if (cityIndexToRemove !== null) {
+                    worldCities.splice(cityIndexToRemove, 1);
+                    renderCities();
+                    updateAllTimes();
+                }
+                closeModal();
+            }
+
+            /**
+             * Closes the removal confirmation modal.
+             */
+            function closeModal() {
+                modal.classList.add('hidden');
+                cityIndexToRemove = null;
+            }
+
+            /**
+             * Updates the time and date for all displayed city cards based on the picker's value.
+             */
+            function updateAllTimes() {
+                const sfDateTimeString = datetimePicker.value;
+                if (!sfDateTimeString) return;
+
+                const now = new Date();
+                const localOffset = now.getTimezoneOffset() * 60000;
+                const sfTimeInMs = new Date(now.toLocaleString('en-US', {timeZone: 'America/Los_Angeles'})).getTime();
+                const sfOffset = sfTimeInMs - (now.getTime() - localOffset);
+                const targetTimeInPicker = new Date(sfDateTimeString).getTime();
+                const baseTime = new Date(targetTimeInPicker - sfOffset);
+
+                document.querySelectorAll('.card').forEach((card, index) => {
+                    const city = worldCities[index];
+                    if (!city) return;
+
+                    const timeDisplay = card.querySelector('.time-display');
+                    const dateDisplay = card.querySelector('.date-display');
+                    
+                    const timeOptions = { timeZone: city.timezone, hour: 'numeric', minute: '2-digit', hour12: true };
+                    const dateOptions = { timeZone: city.timezone, weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+
+                    try {
+                        let timeString = new Intl.DateTimeFormat('en-US', timeOptions).format(baseTime);
+                        let dateString = new Intl.DateTimeFormat('en-US', dateOptions).format(baseTime);
+                        
+                        timeDisplay.textContent = timeString;
+                        dateDisplay.textContent = dateString.replace(/,/g, '');
+
+                    } catch (e) {
+                        console.error(`Invalid timezone for ${city.name}: ${city.timezone}`, e);
+                        timeDisplay.textContent = 'Invalid Zone';
+                        dateDisplay.textContent = '';
+                    }
+                });
+            }
+
+            /**
+             * Sets the initial value of the datetime picker to the current time in San Francisco.
+             */
+            function initializePicker() {
+                const now = new Date();
+                const sfTimezone = 'America/Los_Angeles';
+
+                const year = now.toLocaleString('en-CA', { timeZone: sfTimezone, year: 'numeric' });
+                const month = now.toLocaleString('en-CA', { timeZone: sfTimezone, month: '2-digit' });
+                const day = now.toLocaleString('en-CA', { timeZone: sfTimezone, day: '2-digit' });
+                const hour = now.toLocaleString('en-GB', { timeZone: sfTimezone, hour: '2-digit', hourCycle: 'h23' });
+                const minute = now.toLocaleString('en-GB', { timeZone: sfTimezone, minute: '2-digit' });
+
+                const sfISOString = `${year}-${month}-${day}T${hour}:${minute}`;
+                datetimePicker.value = sfISOString;
+            }
+            
+            /**
+             * Exports the cities container to a PNG image.
+             */
+            function exportToImage() {
+                exportContainer.style.backgroundColor = '#f3f4f6';
+
+                html2canvas(exportContainer, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#f3f4f6',
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'time-zone-comparison.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    exportContainer.style.backgroundColor = '';
+                }).catch(err => {
+                    console.error("Oops, something went wrong!", err);
+                    exportContainer.style.backgroundColor = '';
+                });
+            }
+
+            // --- EVENT LISTENERS ---
+            exportBtn.addEventListener('click', exportToImage);
+            datetimePicker.addEventListener('input', updateAllTimes);
+            citiesContainer.addEventListener('click', handleCardClick);
+            confirmBtn.addEventListener('click', confirmRemoval);
+            cancelBtn.addEventListener('click', closeModal);
+
+            // --- INITIALIZATION ---
+            renderCities();
+            initializePicker();
+            updateAllTimes();
+        });
+    </script>
+</body>
+</html>
