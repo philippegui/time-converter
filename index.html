@@ -90,10 +90,10 @@
         document.addEventListener('DOMContentLoaded', () => {
             // --- DATA ---
             let worldCities = [ // Use 'let' to allow modification
-                { name: "San Francisco", timezone: "America/Los_Angeles" },
-                { name: "Montreal", timezone: "America/Montreal" },
-                { name: "Paris", timezone: "Europe/Paris" },
-                { name: "Phnom Penh", timezone: "Asia/Phnom_Penh" }
+                { name: "San Francisco", timezone: "America/Los_Angeles", flagEmoji: "🇺🇸" },
+                { name: "Montreal", timezone: "America/Montreal", flagEmoji: "🇨🇦" },
+                { name: "Paris", timezone: "Europe/Paris", flagEmoji: "🇫🇷" },
+                { name: "Phnom Penh", timezone: "Asia/Phnom_Penh", flagEmoji: "🇰🇭" }
             ];
 
             // --- DOM ELEMENTS ---
@@ -115,16 +115,17 @@
                 citiesContainer.innerHTML = '';
                 worldCities.forEach((city, index) => {
                     const card = document.createElement('div');
-                    card.className = 'card p-5 flex justify-between items-center cursor-pointer';
+                    // Adjusted padding and alignment for better visual balance
+                    card.className = 'card px-5 py-4 flex justify-between items-start cursor-pointer';
                     card.dataset.index = index;
 
                     card.innerHTML = `
                         <div>
-                            <h2 class="text-xl font-bold text-gray-800">${city.name}</h2>
+                            <h2 class="text-xl font-bold text-gray-800">${city.flagEmoji} ${city.name}</h2>
                         </div>
                         <div class="text-right">
-                            <p class="text-3xl font-semibold text-indigo-600 time-display">--:-- --</p>
-                            <p class="text-lg text-black date-display mt-1">----------</p>
+                            <p class="text-3xl text-indigo-600 time-display">--:-- --</p>
+                            <p class="text-lg text-gray-700 date-display">----------</p>
                         </div>
                     `;
                     citiesContainer.appendChild(card);
@@ -169,11 +170,8 @@
                 const sfDateTimeString = datetimePicker.value;
                 if (!sfDateTimeString) return;
 
-                // This function correctly creates a UTC Date object from a wall-clock time string
-                // for a specific timezone. It works by trying potential UTC offsets for that timezone
-                // and verifying the result using the Intl API, which is the source of truth.
                 function createDateInTimezone(dateTimeString, timeZone) {
-                    const offsetsToTest = ['-07:00', '-08:00']; // PDT and PST offsets
+                    const offsetsToTest = ['-07:00', '-08:00'];
                     let correctDate = null;
 
                     for (const offset of offsetsToTest) {
@@ -193,17 +191,15 @@
                     }
                     
                     if (!correctDate) {
-                        console.error("Could not determine correct offset. Please check timezone data.");
-                        return new Date(dateTimeString); // Fallback
+                        console.error("Could not determine correct offset.");
+                        return new Date(dateTimeString);
                     }
-
                     return correctDate;
                 }
 
                 const baseTime = createDateInTimezone(sfDateTimeString, 'America/Los_Angeles');
                 if (!baseTime) return;
 
-                // Update the city cards
                 document.querySelectorAll('#cities-container .card').forEach((card, index) => {
                     const city = worldCities[index];
                     if (!city) return;
@@ -211,7 +207,13 @@
                     const timeDisplay = card.querySelector('.time-display');
                     const dateDisplay = card.querySelector('.date-display');
                     
-                    const timeOptions = { timeZone: city.timezone, hour: 'numeric', minute: '2-digit', hour12: true };
+                    const timePartsOptions = { timeZone: city.timezone, hour: 'numeric', minute: '2-digit', hour12: true };
+                    const timeParts = new Intl.DateTimeFormat('en-US', timePartsOptions).formatToParts(baseTime);
+
+                    const hour = timeParts.find(p => p.type === 'hour').value;
+                    const minute = timeParts.find(p => p.type === 'minute').value;
+                    const dayPeriod = timeParts.find(p => p.type === 'dayPeriod').value;
+
                     const datePartsOptions = {
                         timeZone: city.timezone,
                         weekday: 'long', day: 'numeric', month: 'short', year: 'numeric'
@@ -224,10 +226,10 @@
                     const year = parts.find(p => p.type === 'year').value;
 
                     try {
-                        let timeString = new Intl.DateTimeFormat('en-US', timeOptions).format(baseTime);
-                        const dateHTML = `${weekday} ${day} <span class="text-sm text-gray-500">${month} ${year}</span>`;
+                        const timeHTML = `<span class="font-semibold">${hour}:${minute}</span><span class="text-lg font-normal align-baseline ml-1">${dayPeriod}</span>`;
+                        const dateHTML = `${weekday} ${day} <span class="text-sm text-gray-700">${month} ${year}</span>`;
                         
-                        timeDisplay.textContent = timeString;
+                        timeDisplay.innerHTML = timeHTML;
                         dateDisplay.innerHTML = dateHTML;
 
                     } catch (e) {
