@@ -6,10 +6,13 @@
     <title>Time Zone Converter</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Condensed:wght@300;400&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Roboto', sans-serif;
+        }
+        .condensed-font {
+            font-family: 'Roboto Condensed', sans-serif;
         }
         /* Custom styles for better visual appeal */
         .card {
@@ -54,7 +57,8 @@
         <!-- Export Button -->
         <div class="mt-8 text-center">
             <button id="export-btn" class="bg-green-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2" fill="none" viewBox="0
+ 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Export to Image
             </button>
         </div>
@@ -224,8 +228,8 @@
                     const month = parts.find(p => p.type === 'month').value;
 
                     try {
-                        const timeHTML = `<span class="text-3xl font-semibold">${hour}:${minute}</span><span class="text-3xl font-light ml-1">${dayPeriod}</span>`;
-                        const dateHTML = `<span class="text-base">${weekday}</span> <span class="text-base font-light ml-1">${month} ${day}</span>`;
+                        const timeHTML = `<span class="text-4xl font-semibold">${hour}:${minute}</span><span class="condensed-font text-4xl font-light ml-1">${dayPeriod}</span>`;
+                        const dateHTML = `<span class="condensed-font uppercase text-lg font-light">${weekday} ${month} ${day}</span>`;
                         
                         timeDisplay.innerHTML = timeHTML;
                         dateDisplay.innerHTML = dateHTML;
